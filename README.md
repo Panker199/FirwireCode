@@ -66,9 +66,4 @@ Set your API key in Settings. It is stored locally at:
 
 Use the Revoke button to remove it.
 
-## Release checklist
-- Ensure `api.txt` is not present
-- Verify `assets/screenshot.png` is included
-- Remove generated artifacts before committing: `node_modules/`, `dist/`, `app/renderer/bundle.js`
-- Run `npm install` then `npm run dist`
-- Upload EXE files from `dist/` to GitHub Releases, then delete `dist/` again
+
