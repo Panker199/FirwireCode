@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { ThemeProvider } from "./ThemeContext.jsx";
 import TitleBar from "./components/TitleBar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Chat from "./components/Chat.jsx";
+import Settings from "./components/Settings.jsx";
 import system from "../../core/prompts.js";
 
 function createId() {
@@ -55,7 +57,7 @@ function getNextChatNumber(threads) {
 
 const initialThreads = [createThread(1), createThread(2)];
 
-export default function App() {
+function AppInner() {
   const [threads, setThreads] = useState(initialThreads);
   const [activeId, setActiveId] = useState(initialThreads[0].id);
   const [nextChatNumber, setNextChatNumber] = useState(3);
@@ -75,7 +77,7 @@ export default function App() {
     try {
       const hasKey = await window.wormgpt.keyStatus();
       setKeyStatus(hasKey ? "saved" : "missing");
-    } catch (err) {
+    } catch {
       setKeyStatus("missing");
     }
   }
@@ -110,7 +112,7 @@ export default function App() {
             setActiveId(active);
           }
         }
-      } catch (err) {
+      } catch {
         // Ignore load failures and keep defaults.
       } finally {
         if (!cancelled) {
@@ -214,10 +216,8 @@ export default function App() {
           onSelect={handleSelect}
           onNew={handleNew}
           onClear={handleClear}
-          showSettings={showSettings}
-          onToggleSettings={() => setShowSettings(show => !show)}
+          onOpenSettings={() => setShowSettings(true)}
           keyStatus={keyStatus}
-          onKeySaved={refreshKeyStatus}
         />
         <Chat
           messages={visibleMessages}
@@ -226,6 +226,20 @@ export default function App() {
           error={error}
         />
       </div>
+      {showSettings && (
+        <Settings
+          onClose={() => setShowSettings(false)}
+          onKeySaved={refreshKeyStatus}
+        />
+      )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
   );
 }
