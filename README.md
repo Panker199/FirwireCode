@@ -2,6 +2,10 @@
 
 WormGPT is a desktop chat client built with Electron + React and powered by the Groq API.
 
+## Links
+- **Live App:** https://firewire-code-git-main-panker199s-projects.vercel.app/
+- **GitHub:** https://github.com/Panker199/FirwireCode
+
 ## Features
 - Multi-chat sidebar with persistent history
 - API key manager (save, test, revoke)
