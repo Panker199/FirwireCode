@@ -2,6 +2,16 @@
   "version": 2,
   "framework": null,
   "installCommand": "echo skip",
-  "buildCommand": "echo skip",
-  "outputDirectory": "app/renderer"
+  "buildCommand": "cp app/renderer/index.html . && cp app/renderer/styles.css . && cp app/renderer/bundle.js . && cp app/renderer/browser.js .",
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    }
+  ]
 }
