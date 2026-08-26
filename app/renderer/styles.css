@@ -56,7 +56,7 @@ body {
 .sidebar.hidden-mobile { transform: translateX(-100%); opacity: 0; pointer-events: none; }
 
 .sidebar-open {
-  position: fixed; top: 8px; left: 8px; z-index: 25;
+  position: fixed; top: 4px; left: 8px; z-index: 25;
   width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--bg-1); color: var(--text-dim); cursor: pointer;
   display: none; align-items: center; justify-content: center;
