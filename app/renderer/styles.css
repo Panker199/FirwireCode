@@ -579,7 +579,7 @@ body {
   .main__title { font-size: 14px; font-weight: 600; }
 
   .chat__msgs { padding: 16px; }
-  .chat__in { padding: 0 12px 50px; }
+  .chat__in { padding: 0 12px 70px; }
   .in textarea { font-size: 16px; min-height: 24px; }
   .in__row { padding: 12px 12px 4px; }
   .in__bar { padding: 8px 10px 10px; }
@@ -607,7 +607,7 @@ body {
   .main__icon { width: 32px; height: 32px; }
 
   .chat__msgs { padding: 12px 10px; }
-  .chat__in { padding: 0 10px 50px; }
+  .chat__in { padding: 0 10px 70px; }
   .in__row { padding: 10px 10px 2px; }
   .in__bar { padding: 6px 8px 8px; }
   .in textarea { font-size: 16px; }
