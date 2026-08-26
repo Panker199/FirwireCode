@@ -65,12 +65,6 @@ Firewire is a powerful AI coding assistant that works both as an Electron deskto
 
 ---
 
-## Screenshots
-
-![Firewire UI](assets/screenshot.png)
-
----
-
 ## Requirements
 
 - Node.js 18+ (LTS recommended)
