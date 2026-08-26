@@ -27,14 +27,14 @@
 
     async function aG(msg, key, model) {
       if (!key) throw new Error("No Groq API key set.");
-      var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      var r = await fetch("/api/groq", {
         method: "POST",
-        headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: model || "qwen/qwen3.6-27b", messages: msg, temperature: 0.7, top_p: 0.95 }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: msg, model: model || "qwen/qwen3.6-27b", apiKey: key }),
         signal: AbortSignal.timeout(30000)
       });
       var d = await r.json();
-      if (!r.ok) throw new Error((d && d.error && d.error.message) || "Groq API error (" + r.status + ")");
+      if (!r.ok) throw new Error((d && d.error) || "Groq API error (" + r.status + ")");
       var c = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
       if (!c) throw new Error("Groq returned no content");
       return c;
@@ -42,19 +42,14 @@
 
     async function aGe(msg, key, model) {
       if (!key) throw new Error("No Gemini API key set.");
-      var gm = model || "gemini-3.6-flash";
-      var contents = msg.filter(function(m) { return m.role !== "system"; }).map(function(m) {
-        return { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] };
-      });
-      var body = { contents: contents };
-      var sys = msg.find(function(m) { return m.role === "system"; });
-      if (sys) body.systemInstruction = { parts: [{ text: sys.content }] };
-      body.generationConfig = { temperature: 0.7, topP: 0.95 };
-      var r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + gm + ":generateContent?key=" + key, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(60000)
+      var r = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: msg, model: model || "gemini-3.6-flash", apiKey: key }),
+        signal: AbortSignal.timeout(60000)
       });
       var d = await r.json();
-      if (!r.ok) throw new Error((d && d.error && d.error.message) || "Gemini API error (" + r.status + ")");
+      if (!r.ok) throw new Error((d && d.error) || "Gemini API error (" + r.status + ")");
       var c = d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text;
       if (!c) throw new Error("Gemini returned no content");
       return c;
@@ -75,8 +70,8 @@
       saveKey: function(p, k) { var d = ld(); if (p === "gemini") d.geminiApiKey = k; else d.apiKey = k; sv(d); },
       revokeKey: function() { var d = ld(); delete d.apiKey; delete d.geminiApiKey; sv(d); },
       testKey: function(p, k) {
-        if (p === "gemini") return fetch("https://generativelanguage.googleapis.com/v1beta/models?key=" + k).then(function(r) { return {ok:r.ok,status:r.status}; }).catch(function() { return {ok:false,status:0}; });
-        return fetch("https://api.groq.com/openai/v1/models", {headers:{"Authorization":"Bearer "+k}}).then(function(r) { return {ok:r.ok,status:r.status}; }).catch(function() { return {ok:false,status:0}; });
+        if (p === "gemini") return fetch("/api/gemini", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{role:"user",content:"Say OK"}], apiKey: k }) }).then(function(r) { return {ok:r.ok,status:r.status}; }).catch(function() { return {ok:false,status:0}; });
+        return fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{role:"user",content:"Say OK"}], apiKey: k }) }).then(function(r) { return {ok:r.ok,status:r.status}; }).catch(function() { return {ok:false,status:0}; });
       },
       keyStatus: function() { var d = ld(); return { groq: Boolean(d.apiKey), gemini: Boolean(d.geminiApiKey) }; },
       loadChats: function() { return Promise.resolve(ld().chats || null); },

@@ -8,14 +8,14 @@ function stripThinking(text) { return text.replace(/<think>[\s\S]*?<\/think>/g, 
 
 async function askGroq(messages, apiKey, model) {
   if (!apiKey) throw new Error("No Groq API key set.");
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const res = await fetch("/api/groq", {
     method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: model || "qwen/qwen3.6-27b", messages, temperature: 0.7, top_p: 0.95 }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, model: model || "qwen/qwen3.6-27b", apiKey }),
     signal: AbortSignal.timeout(30000)
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message || `Groq API error (${res.status})`);
+  if (!res.ok) throw new Error(data?.error || `Groq API error (${res.status})`);
   const content = data?.choices?.[0]?.message?.content;
   if (!content) throw new Error("Groq returned no content");
   return content;
@@ -23,22 +23,14 @@ async function askGroq(messages, apiKey, model) {
 
 async function askGemini(messages, apiKey, model) {
   if (!apiKey) throw new Error("No Gemini API key set.");
-  const geminiModel = model || "gemini-3.6-flash";
-  const contents = messages.filter(m => m.role !== "system").map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }]
-  }));
-  const body = { contents };
-  const sys = messages.find(m => m.role === "system");
-  if (sys) body.systemInstruction = { parts: [{ text: sys.content }] };
-  body.generationConfig = { temperature: 0.7, topP: 0.95 };
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(60000) }
-  );
+  const res = await fetch("/api/gemini", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, model: model || "gemini-3.6-flash", apiKey }),
+    signal: AbortSignal.timeout(60000)
+  });
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message || `Gemini API error (${res.status})`);
+  if (!res.ok) throw new Error(data?.error || `Gemini API error (${res.status})`);
   const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) throw new Error("Gemini returned no content");
   return content;
