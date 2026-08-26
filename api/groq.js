@@ -12,16 +12,17 @@ export default async function handler(req, res) {
   }
 
   const { messages, model, apiKey } = req.body;
+  const key = apiKey || process.env.GROQ_API_KEY;
 
-  if (!apiKey) {
-    return res.status(400).json({ error: "API key not set" });
+  if (!key) {
+    return res.status(400).json({ error: "API key not set. Add GROQ_API_KEY in Vercel env vars or set key in Settings." });
   }
 
   try {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${key}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({

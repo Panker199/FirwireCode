@@ -12,9 +12,10 @@ export default async function handler(req, res) {
   }
 
   const { messages, model, apiKey } = req.body;
+  const key = apiKey || process.env.GEMINI_API_KEY;
 
-  if (!apiKey) {
-    return res.status(400).json({ error: "API key not set" });
+  if (!key) {
+    return res.status(400).json({ error: "API key not set. Add GEMINI_API_KEY in Vercel env vars or set key in Settings." });
   }
 
   const geminiModel = model || "gemini-3.6-flash";
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
     body.generationConfig = { temperature: 0.7, topP: 0.95 };
 
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

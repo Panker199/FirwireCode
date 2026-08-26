@@ -47,13 +47,9 @@ export function initBrowserWormgpt() {
       const d = loadData();
       const provider = d.provider || "groq";
       if (provider === "gemini") {
-        const key = d.geminiApiKey;
-        if (!key) throw new Error("No Gemini API key. Open Settings to add one.");
-        return stripThinking(await askGemini(messages, key, d.geminiModel || "gemini-3.6-flash"));
+        return stripThinking(await askGemini(messages, d.geminiApiKey || "", d.geminiModel || "gemini-3.6-flash"));
       }
-      const key = d.apiKey;
-      if (!key) throw new Error("No Groq API key. Open Settings to add one.");
-      return stripThinking(await askGroq(messages, key, d.groqModel || "qwen/qwen3.6-27b"));
+      return stripThinking(await askGroq(messages, d.apiKey || "", d.groqModel || "qwen/qwen3.6-27b"));
     },
     saveKey(provider, key) {
       const d = loadData();
@@ -83,25 +79,21 @@ export function initBrowserWormgpt() {
     async detectBest() {
       const d = loadData();
       const results = [];
-      if (d.apiKey) {
-        for (const m of ["qwen/qwen3.6-27b", "openai/gpt-oss-120b", "allam-2-7b"]) {
-          try {
-            const start = Date.now();
-            await askGroq([{ role: "user", content: "Say OK" }], d.apiKey, m);
-            results.push({ provider: "groq", model: m, latency: Date.now() - start });
-            break;
-          } catch {}
-        }
+      for (const m of ["qwen/qwen3.6-27b", "openai/gpt-oss-120b", "allam-2-7b"]) {
+        try {
+          const start = Date.now();
+          await askGroq([{ role: "user", content: "Say OK" }], d.apiKey || "", m);
+          results.push({ provider: "groq", model: m, latency: Date.now() - start });
+          break;
+        } catch {}
       }
-      if (d.geminiApiKey) {
-        for (const m of ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash"]) {
-          try {
-            const start = Date.now();
-            await askGemini([{ role: "user", content: "Say OK" }], d.geminiApiKey, m);
-            results.push({ provider: "gemini", model: m, latency: Date.now() - start });
-            break;
-          } catch {}
-        }
+      for (const m of ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash"]) {
+        try {
+          const start = Date.now();
+          await askGemini([{ role: "user", content: "Say OK" }], d.geminiApiKey || "", m);
+          results.push({ provider: "gemini", model: m, latency: Date.now() - start });
+          break;
+        } catch {}
       }
       if (results.length === 0) return { ok: false, best: null, all: [] };
       results.sort((a, b) => a.latency - b.latency);

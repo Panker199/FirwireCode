@@ -65,11 +65,10 @@
     window.wormgpt = {
       chat: function(msg) {
         var d = ld(), p = d.provider || "groq";
-        if (p === "gemini" && d.geminiApiKey) {
-          return aGe(msg, d.geminiApiKey, d.geminiModel || "gemini-3.6-flash").then(st);
+        if (p === "gemini") {
+          return aGe(msg, d.geminiApiKey || "", d.geminiModel || "gemini-3.6-flash").then(st);
         }
-        var k = d.apiKey; if (!k) throw new Error("No API key set.");
-        return aG(msg, k, d.groqModel || "qwen/qwen3.6-27b").then(st);
+        return aG(msg, d.apiKey || "", d.groqModel || "qwen/qwen3.6-27b").then(st);
       },
       saveKey: function(p, k) { var d = ld(); if (p === "gemini") d.geminiApiKey = k; else d.apiKey = k; sv(d); },
       revokeKey: function() { var d = ld(); delete d.apiKey; delete d.geminiApiKey; sv(d); },
@@ -90,12 +89,8 @@
       detectBest: function() {
         var d = ld(), results = [];
         var tasks = [];
-        if (d.apiKey) {
-          tasks.push(aG([{role:"user",content:"Say OK"}], d.apiKey, "qwen/qwen3.6-27b").then(function() { results.push({provider:"groq",model:"qwen/qwen3.6-27b",latency:0}); }).catch(function() {}));
-        }
-        if (d.geminiApiKey) {
-          tasks.push(aGe([{role:"user",content:"Say OK"}], d.geminiApiKey, "gemini-3.5-flash-lite").then(function() { results.push({provider:"gemini",model:"gemini-3.5-flash-lite",latency:0}); }).catch(function() {}));
-        }
+        tasks.push(aG([{role:"user",content:"Say OK"}], d.apiKey || "", "qwen/qwen3.6-27b").then(function() { results.push({provider:"groq",model:"qwen/qwen3.6-27b",latency:0}); }).catch(function() {}));
+        tasks.push(aGe([{role:"user",content:"Say OK"}], d.geminiApiKey || "", "gemini-3.5-flash-lite").then(function() { results.push({provider:"gemini",model:"gemini-3.5-flash-lite",latency:0}); }).catch(function() {}));
         return Promise.all(tasks).then(function() {
           if (results.length === 0) return { ok: false, best: null, all: [] };
           return { ok: true, best: results[0], all: results };
@@ -105,13 +100,6 @@
       executeCode: noopP, completeCode: noopP, getSystemInfo: noopP,
       testOllama: noopP, getOllamaModels: noopP,
       listSkills: noopP, getSkill: noopP, executeSkill: noopP,
-      detectBest: function() {
-        var d = ld(), results = [];
-        var tasks = [];
-        if (d.apiKey) { tasks.push(aG([{role:"user",content:"Say OK"}], d.apiKey, "qwen/qwen3.6-27b").then(function() { results.push({provider:"groq",model:"qwen/qwen3.6-27b",latency:0}); }).catch(function() {})); }
-        if (d.geminiApiKey) { tasks.push(aGe([{role:"user",content:"Say OK"}], d.geminiApiKey, "gemini-3.5-flash-lite").then(function() { results.push({provider:"gemini",model:"gemini-3.5-flash-lite",latency:0}); }).catch(function() {})); }
-        return Promise.all(tasks).then(function() { if (results.length === 0) return { ok: false, best: null, all: [] }; return { ok: true, best: results[0], all: results }; });
-      },
       // File System
       readFile: function(p) { return Promise.resolve({ ok: false, error: "File ops not available in browser" }); },
       writeFile: function(p, c) { return Promise.resolve({ ok: false, error: "File ops not available in browser" }); },
