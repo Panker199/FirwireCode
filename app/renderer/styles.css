@@ -575,8 +575,8 @@ body {
   .sidebar.hidden-mobile { transform: translateX(-100%); opacity: 0; pointer-events: none; }
   .sidebar-open.show { display: flex; }
 
-  .main__bar { height: 48px; padding: 0 12px; }
-  .main__title { font-size: 14px; }
+  .main__bar { height: 48px; padding: 0 12px 0 48px; }
+  .main__title { font-size: 14px; font-weight: 600; }
 
   .chat__msgs { padding: 16px; }
   .chat__in { padding: 0 12px 12px; }
@@ -601,7 +601,7 @@ body {
 @media (max-width: 480px) {
   .sidebar { width: 100%; }
 
-  .main__bar { height: 44px; padding: 0 8px; }
+  .main__bar { height: 44px; padding: 0 8px 0 48px; }
   .main__icon { width: 32px; height: 32px; }
 
   .chat__msgs { padding: 12px 10px; }
