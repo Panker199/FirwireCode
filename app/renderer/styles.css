@@ -155,7 +155,7 @@ body {
 .sidebar__bottom {
   padding: 12px; border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  margin-top: auto;
+  margin-top: auto; margin-bottom: 4px;
 }
 .sidebar__status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
 .sidebar__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
@@ -596,6 +596,8 @@ body {
 
   .code-editor__explorer { display: none; }
   .code-editor__terminal { height: 140px; }
+
+  .sidebar__bottom { padding: 12px 12px 20px; }
 }
 
 @media (max-width: 480px) {
