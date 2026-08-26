@@ -1,16 +1,21 @@
 {
   "name": "wormgpt",
   "version": "1.2.0",
-  "description": "WormGPT desktop client built with Electron and React.",
+  "description": "Firewire desktop client built with Electron and React.",
   "author": "Lahiru Sanjika (Cyber Security Researcher)",
   "main": "app/main/main.js",
   "scripts": {
     "build:renderer": "esbuild app/renderer/main.jsx --bundle --minify --legal-comments=none --outfile=app/renderer/bundle.js --platform=browser --format=esm --jsx=automatic --loader:.jsx=jsx && npm run obfuscate:renderer",
+    "build:browser": "esbuild app/renderer/main.jsx --bundle --minify --legal-comments=none --outfile=app/renderer/bundle.js --platform=browser --format=esm --jsx=automatic --loader:.jsx=jsx",
     "obfuscate:renderer": "node scripts/obfuscate-renderer.js",
     "start": "npm run build:renderer && electron .",
+    "open": "npm run build:browser && node scripts/dev-server.js",
+    "dev": "npm run build:browser && node scripts/dev-server.js",
     "dist": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& npm run build:renderer && electron-builder"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "dotenv": "^17.4.2",
     "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

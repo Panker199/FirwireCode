@@ -1,53 +1,52 @@
-import Message from "./Message.jsx";
+﻿import { useEffect, useRef, memo } from "react";
 import Input from "./Input.jsx";
+import CodeBlock from "./CodeBlock.jsx";
 
-export default function Chat({ messages, onSend, isSending, error }) {
-  const showEmpty = messages.length === 0 && !isSending;
+const Msg = memo(function Msg({ msg }) {
+  const u = msg.role === "user";
+  return (
+    <div className={`msg ${u ? "msg--user" : "msg--assistant"}`}>
+      <div className="msg__av">{u ? "U" : "A"}</div>
+      <div className="msg__body">
+        <div className="msg__name">{u ? "You" : "Assistant"}</div>
+        <div className="msg__text">
+          {msg.pending ? <div className="dots"><span /><span /><span /></div> : <Render content={msg.content} />}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const Render = memo(function Render({ content }) {
+  if (!content) return null;
+  const parts = content.split(/(```[\s\S]*?```)/g);
+  return parts.map((p, i) => {
+    const m = p.match(/^```(\w*)\n?([\s\S]*?)```$/);
+    if (m) return <CodeBlock key={i} language={m[1] || "text"} code={m[2]} />;
+    return <span key={i}>{p}</span>;
+  });
+});
+
+export default function Chat({ msgs, onSend, sending, error, provider, model, onModel }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.scrollTo({ top: ref.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [msgs, sending]);
 
   return (
-    <section className="chat">
-      <div className="chat__stage">
-        {showEmpty ? (
-          <div className="chat__empty">
-            <div className="chat__empty-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div className="chat__empty-text">WormGPT</div>
-            <div className="chat__empty-hint">Unleashed and Uncensored</div>
-          </div>
-        ) : (
-          <div className="chat__messages">
-            <div className="chat__messages-inner">
-              {messages.map((m, i) => (
-                <Message key={i} role={m.role} text={m.content} />
-              ))}
-              {isSending && (
-                <Message role="assistant" pending>
-                  <div className="typing-indicator">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </Message>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      {error && (
-        <div className="chat__error">
-          <div className="chat__error-inner">{error}</div>
-        </div>
+    <div className="chat">
+      {msgs.length === 0 ? (
+        <div className="chat__empty"><span className="chat__empty-text">What can I help with?</span></div>
+      ) : (
+        <div className="chat__msgs" ref={ref}>{msgs.map((m, i) => <Msg key={i} msg={m} />)}</div>
       )}
-      <div className="input-area">
-        <div className="input-area__inner">
-          <Input onSend={onSend} disabled={isSending} />
-        </div>
+      <div className="chat__in">
+        <Input onSend={onSend} off={sending} provider={provider} model={model} onModel={onModel} />
+        {error && <div className="in__err">{error}</div>}
       </div>
-    </section>
+    </div>
   );
 }

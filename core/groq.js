@@ -11,9 +11,12 @@ async function askGroq(messages, apiKey) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "openai/gpt-oss-20b",
+      model: "qwen/qwen3.6-27b",
       messages,
-      temperature: 0.5
+      temperature: 0.7,
+      top_p: 0.95,
+      presence_penalty: 0,
+      frequency_penalty: 0
     })
   });
 
