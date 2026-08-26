@@ -1,12 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-eval' 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data: blob: https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:;"
-  />
   <title>Firewire</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,7 +10,144 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="bundle.js"></script>
+  <div id="root"><div style="color:#fafafa;padding:40px;font-family:monospace;">Loading...</div></div>
+  <script>
+  window.onerror = function(msg, src, line, col, err) {
+    document.getElementById("root").innerHTML = '<pre style="color:red;padding:20px;font-size:12px;">ERROR: ' + msg + '\nLine: ' + line + ':' + col + (err && err.stack ? '\n\n' + err.stack : '') + '</pre>';
+  };
+  </script>
+  <script>
+  (function() {
+    var K = "wormgpt-data";
+    function ld() { try { return JSON.parse(localStorage.getItem(K)) || {}; } catch(e) { return {}; } }
+    function sv(d) { localStorage.setItem(K, JSON.stringify(d)); }
+    function ensureKeys() { var d = ld(); if (!d.apiKey) d.apiKey = ""; delete d.geminiApiKey; if (!d.provider) d.provider = "groq"; if (!d.groqModel) d.groqModel = "qwen/qwen3.6-27b"; if (!d.geminiModel) d.geminiModel = "gemini-3.6-flash"; sv(d); }
+    ensureKeys();
+    function st(t) { return t.replace(/<think>[\s\S]*?<\/think>/g, "").trim(); }
+
+    async function aG(msg, key, model) {
+      if (!key) throw new Error("No Groq API key set.");
+      var r = await fetch("/api/groq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: msg, model: model || "qwen/qwen3.6-27b", apiKey: key }),
+        signal: AbortSignal.timeout(30000)
+      });
+      var d = await r.json();
+      if (!r.ok) throw new Error((d && d.error) || "Groq API error (" + r.status + ")");
+      var c = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      if (!c) throw new Error("Groq returned no content");
+      return c;
+    }
+
+    async function aGe(msg, key, model) {
+      if (!key) throw new Error("No Gemini API key set.");
+      var r = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: msg, model: model || "gemini-3.6-flash", apiKey: key }),
+        signal: AbortSignal.timeout(60000)
+      });
+      var d = await r.json();
+      if (!r.ok) throw new Error((d && d.error) || "Gemini API error (" + r.status + ")");
+      var c = d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text;
+      if (!c) throw new Error("Gemini returned no content");
+      return c;
+    }
+
+    function noop() {}
+    function noopP() { return Promise.resolve(null); }
+
+    window.wormgpt = {
+      chat: function(msg) {
+        var d = ld(), p = d.provider || "groq";
+        if (p === "gemini" && d.geminiApiKey) {
+          return aGe(msg, d.geminiApiKey, d.geminiModel || "gemini-3.6-flash").then(st);
+        }
+        var k = d.apiKey; if (!k) throw new Error("No API key set.");
+        return aG(msg, k, d.groqModel || "qwen/qwen3.6-27b").then(st);
+      },
+      saveKey: function(p, k) { var d = ld(); if (p === "gemini") d.geminiApiKey = k; else d.apiKey = k; sv(d); },
+      revokeKey: function() { var d = ld(); delete d.apiKey; delete d.geminiApiKey; sv(d); },
+      testKey: function(p, k) {
+        if (p === "gemini") return fetch("/api/gemini", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{role:"user",content:"Say OK"}], apiKey: k }) }).then(function(r) { return {ok:r.ok,status:r.status}; }).catch(function() { return {ok:false,status:0}; });
+        return fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{role:"user",content:"Say OK"}], apiKey: k }) }).then(function(r) { return {ok:r.ok,status:r.status}; }).catch(function() { return {ok:false,status:0}; });
+      },
+      keyStatus: function() { var d = ld(); return { groq: Boolean(d.apiKey), gemini: Boolean(d.geminiApiKey) }; },
+      loadChats: function() { return Promise.resolve(ld().chats || null); },
+      saveChats: function(ch) { var d = ld(); d.chats = ch; sv(d); },
+      deleteThread: function() {},
+      getProvider: function() { var d = ld(); return Promise.resolve({ provider: d.provider || "groq", groqModel: d.groqModel || "qwen/qwen3.6-27b", geminiModel: d.geminiModel || "gemini-3.6-flash" }); },
+      setProvider: function(p) { var d = ld(); d.provider = p; sv(d); },
+      setGroqModel: function(m) { var d = ld(); d.groqModel = m; sv(d); },
+      setGeminiModel: function(m) { var d = ld(); d.geminiModel = m; sv(d); },
+      setOllamaUrl: noop,
+      setOllamaModel: noop,
+      detectBest: function() {
+        var d = ld(), results = [];
+        var tasks = [];
+        if (d.apiKey) {
+          tasks.push(aG([{role:"user",content:"Say OK"}], d.apiKey, "qwen/qwen3.6-27b").then(function() { results.push({provider:"groq",model:"qwen/qwen3.6-27b",latency:0}); }).catch(function() {}));
+        }
+        if (d.geminiApiKey) {
+          tasks.push(aGe([{role:"user",content:"Say OK"}], d.geminiApiKey, "gemini-3.5-flash-lite").then(function() { results.push({provider:"gemini",model:"gemini-3.5-flash-lite",latency:0}); }).catch(function() {}));
+        }
+        return Promise.all(tasks).then(function() {
+          if (results.length === 0) return { ok: false, best: null, all: [] };
+          return { ok: true, best: results[0], all: results };
+        });
+      },
+      minimize: noop, maximize: noop, close: noop,
+      executeCode: noopP, completeCode: noopP, getSystemInfo: noopP,
+      testOllama: noopP, getOllamaModels: noopP,
+      listSkills: noopP, getSkill: noopP, executeSkill: noopP,
+      detectBest: function() {
+        var d = ld(), results = [];
+        var tasks = [];
+        if (d.apiKey) { tasks.push(aG([{role:"user",content:"Say OK"}], d.apiKey, "qwen/qwen3.6-27b").then(function() { results.push({provider:"groq",model:"qwen/qwen3.6-27b",latency:0}); }).catch(function() {})); }
+        if (d.geminiApiKey) { tasks.push(aGe([{role:"user",content:"Say OK"}], d.geminiApiKey, "gemini-3.5-flash-lite").then(function() { results.push({provider:"gemini",model:"gemini-3.5-flash-lite",latency:0}); }).catch(function() {})); }
+        return Promise.all(tasks).then(function() { if (results.length === 0) return { ok: false, best: null, all: [] }; return { ok: true, best: results[0], all: results }; });
+      },
+      // File System
+      readFile: function(p) { return Promise.resolve({ ok: false, error: "File ops not available in browser" }); },
+      writeFile: function(p, c) { return Promise.resolve({ ok: false, error: "File ops not available in browser" }); },
+      fileExists: function(p) { return Promise.resolve(false); },
+      deleteFile: function(p) { return Promise.resolve({ ok: false }); },
+      listFiles: function(p) { return Promise.resolve([]); },
+      fileTree: function(p, d) { return Promise.resolve([]); },
+      renameFile: function(o, n) { return Promise.resolve({ ok: false }); },
+      moveFile: function(s, d) { return Promise.resolve({ ok: false }); },
+      copyFile: function(s, d) { return Promise.resolve({ ok: false }); },
+      searchFiles: function(d, p) { return Promise.resolve([]); },
+      mkdir: function(d) { return Promise.resolve({ ok: false }); },
+      rmdir: function(d) { return Promise.resolve({ ok: false }); },
+      // Git
+      gitExec: function(a, c) { return Promise.resolve({ ok: false, output: "Git not available in browser" }); },
+      gitInit: function(c) { return Promise.resolve({ ok: false }); },
+      gitStatus: function(c) { return Promise.resolve({ ok: false }); },
+      gitAdd: function(f, c) { return Promise.resolve({ ok: false }); },
+      gitCommit: function(m, c) { return Promise.resolve({ ok: false }); },
+      gitPush: function(r, b, c) { return Promise.resolve({ ok: false }); },
+      gitPull: function(r, b, c) { return Promise.resolve({ ok: false }); },
+      gitLog: function(n, c) { return Promise.resolve({ ok: false }); },
+      gitDiff: function(c) { return Promise.resolve({ ok: false }); },
+      gitBranch: function(c) { return Promise.resolve({ ok: false }); },
+      gitCheckout: function(b, c) { return Promise.resolve({ ok: false }); },
+      gitStash: function(c) { return Promise.resolve({ ok: false }); },
+      gitMerge: function(b, c) { return Promise.resolve({ ok: false }); },
+      gitRebase: function(b, c) { return Promise.resolve({ ok: false }); },
+      gitClone: function(u, d) { return Promise.resolve({ ok: false }); },
+      // Build & Run
+      buildRun: function(cmd, c) { return Promise.resolve({ ok: false, output: "Terminal not available in browser" }); },
+      // Package Management
+      pkgInstall: function(p, m, c) { return Promise.resolve({ ok: false }); },
+      pkgUninstall: function(p, m, c) { return Promise.resolve({ ok: false }); },
+      pkgList: function(c) { return Promise.resolve({ ok: false }); },
+      // Web Search
+      webSearch: function(q) { return Promise.resolve({ results: [] }); }
+    };
+  })();
+  </script>
+  <script type="module" src="browser.js"></script>
 </body>
 </html>
