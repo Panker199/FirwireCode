@@ -1,15 +1,20 @@
 {
   "version": 2,
+  "installCommand": "echo Skipping install",
   "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
     {
       "src": "app/renderer/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/app/renderer/browser.html"
-    }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/styles.css", "dest": "/app/renderer/styles.css" },
+    { "src": "/browser.js", "dest": "/app/renderer/browser.js" },
+    { "src": "/(.*)", "dest": "/app/renderer/browser.html" }
   ]
 }
