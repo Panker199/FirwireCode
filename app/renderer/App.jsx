@@ -62,12 +62,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:3000", { method: "HEAD", mode: "no-cors", signal: AbortSignal.timeout(2000) })
-      .then(() => setShowBrowser(true))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     let done = false;
     window.wormgpt?.loadChats()?.then(d => {
       if (done || !d?.threads) return;
