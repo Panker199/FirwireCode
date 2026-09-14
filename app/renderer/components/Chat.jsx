@@ -27,7 +27,7 @@ const Render = memo(function Render({ content }) {
   });
 });
 
-export default function Chat({ msgs, onSend, sending, error, provider, model, onModel }) {
+export default function Chat({ msgs, onSend, sending, error, provider, model, onModel, onSettings }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function Chat({ msgs, onSend, sending, error, provider, model, on
         <div className="chat__msgs" ref={ref}>{msgs.map((m, i) => <Msg key={i} msg={m} />)}</div>
       )}
       <div className="chat__in">
-        <Input onSend={onSend} off={sending} provider={provider} model={model} onModel={onModel} />
+        <Input onSend={onSend} off={sending} provider={provider} model={model} onModel={onModel} onSettings={onSettings} />
         {error && <div className="in__err">{error}</div>}
       </div>
     </div>

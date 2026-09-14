@@ -235,7 +235,7 @@ function App() {
         </div>
         <div className="main__content">
           <div className="main__chat">
-            <Chat msgs={msgs} onSend={send} sending={sending} error={error} provider={provider} model={model} onModel={switchModel} />
+            <Chat msgs={msgs} onSend={send} sending={sending} error={error} provider={provider} model={model} onModel={switchModel} onSettings={() => setShowSettings(true)} />
           </div>
           {showBrowser && (
             <div className="main__browser">
