@@ -71,7 +71,7 @@ export default function Settings({ onClose }) {
             <div className="model-section">
               <div className="model-row">
                 <span className="model-label">Groq</span>
-                <select className="model-select" value={groqModel} onChange={e => saveModel("groq", e.target.value)}>
+                <select id="groq-model" name="groq-model" className="model-select" value={groqModel} onChange={e => saveModel("groq", e.target.value)}>
                   <option value="qwen/qwen3.6-27b">Qwen 3.6 27B</option>
                   <option value="openai/gpt-oss-120b">GPT OSS 120B</option>
                   <option value="allam-2-7b">Allam 2 7B</option>
@@ -79,7 +79,7 @@ export default function Settings({ onClose }) {
               </div>
               <div className="model-row">
                 <span className="model-label">Gemini</span>
-                <select className="model-select" value={geminiModel} onChange={e => saveModel("gemini", e.target.value)}>
+                <select id="gemini-model" name="gemini-model" className="model-select" value={geminiModel} onChange={e => saveModel("gemini", e.target.value)}>
                   <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
                   <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
                   <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
@@ -95,6 +95,8 @@ export default function Settings({ onClose }) {
               <span className="key-label">Default URL</span>
               <div className="key-input-row">
                 <input
+                  id="browser-default-url"
+                  name="browser-default-url"
                   className="key-input"
                   type="text"
                   value={browserUrl}

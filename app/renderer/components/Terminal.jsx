@@ -144,6 +144,8 @@ export default function Terminal({ isOpen, onClose }) {
           <span className="terminal__prompt">&gt;</span>
           <input
             ref={inputRef}
+            id="terminal-cmd"
+            name="terminal-cmd"
             type="text"
             className="terminal__input"
             value={input}

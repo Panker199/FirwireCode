@@ -270,7 +270,7 @@ export default function CodeEditor({ onClose, onPreview }) {
               </div>
               <form className="code-editor__terminal-input" onSubmit={runTerminalCmd}>
                 <span className="code-editor__terminal-prompt">$</span>
-                <input value={terminalCmd} onChange={e => setTerminalCmd(e.target.value)} placeholder="Enter command..." autoFocus />
+                <input id="terminal-input" name="terminal-input" value={terminalCmd} onChange={e => setTerminalCmd(e.target.value)} placeholder="Enter command..." autoFocus />
               </form>
             </div>
           )}

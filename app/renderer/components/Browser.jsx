@@ -128,6 +128,8 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
           )}
           <input
             ref={inputRef}
+            id="browser-url"
+            name="browser-url"
             className="browser__url-input"
             type="text"
             value={displayUrl}

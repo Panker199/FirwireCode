@@ -63,7 +63,7 @@ export default function Input({ onSend, off, provider, model, onModel, onSetting
   return (
     <div className={`in ${off ? "is-off" : ""}`}>
       <div className="in__row">
-        <textarea ref={ref} value={text} onChange={resize} onKeyDown={key} placeholder="Type a message..." rows={1} disabled={off} />
+        <textarea ref={ref} id="chat-input" name="chat-input" value={text} onChange={resize} onKeyDown={key} placeholder="Type a message..." rows={1} disabled={off} />
       </div>
       <div className="in__bar">
         <div className="in__left">
