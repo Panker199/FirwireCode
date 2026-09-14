@@ -18,6 +18,35 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("New Tab");
   const [isPreview, setIsPreview] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (isElectron && frameRef.current && !frameRef.current.tagName) {
+      const wv = document.createElement("webview");
+      wv.setAttribute("src", url);
+      wv.setAttribute("class", "browser__webview");
+      wv.setAttribute("partition", "persist:browser");
+      wv.setAttribute("allowpopups", "");
+      frameRef.current.appendChild(wv);
+      frameRef.current._webview = wv;
+
+      const handleLoad = () => { setLoading(false); try { setTitle(wv.getTitle() || "Untitled"); } catch {} };
+      const handleStart = () => setLoading(true);
+      const handleTitle = (e) => setTitle(e.title || "Untitled");
+
+      wv.addEventListener("did-navigate", handleLoad);
+      wv.addEventListener("did-navigate-in-page", handleLoad);
+      wv.addEventListener("did-start-loading", handleStart);
+      wv.addEventListener("did-stop-loading", handleLoad);
+      wv.addEventListener("page-title-updated", handleTitle);
+    }
+    setReady(true);
+  }, []);
+
+  const getFrame = useCallback(() => {
+    if (!frameRef.current) return null;
+    return frameRef.current._webview || frameRef.current;
+  }, []);
 
   const navigate = useCallback((target) => {
     const formatted = formatUrl(target);
@@ -26,94 +55,53 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
       setDisplayUrl(formatted);
       setIsPreview(false);
       setLoading(true);
+      const f = getFrame();
+      if (f) {
+        if (isElectron && f.loadURL) f.loadURL(formatted);
+        else if (f.src !== undefined) f.src = formatted;
+      }
     }
-  }, []);
+  }, [getFrame]);
 
   const loadPreview = useCallback((html) => {
-    if (!frameRef.current || !html) return;
     setIsPreview(true);
     setTitle("Live Preview");
     setDisplayUrl("preview://localhost");
-    if (isElectron) {
-      frameRef.current.loadURL(`data:text/html,${encodeURIComponent(html)}`);
-    } else {
-      frameRef.current.srcdoc = html;
+    const f = getFrame();
+    if (f) {
+      if (isElectron && f.loadURL) f.loadURL(`data:text/html,${encodeURIComponent(html)}`);
+      else if (f.srcdoc !== undefined) f.srcdoc = html;
     }
-  }, []);
+  }, [getFrame]);
 
   useEffect(() => {
     if (previewHtml) loadPreview(previewHtml);
   }, [previewHtml, loadPreview]);
 
   const handleKeyDown = useCallback((e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      navigate(displayUrl);
-    }
-    if (e.key === "Escape") {
-      e.target.blur();
-    }
+    if (e.key === "Enter") { e.preventDefault(); navigate(displayUrl); }
+    if (e.key === "Escape") { e.target.blur(); }
   }, [displayUrl, navigate]);
 
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-
-    const handleLoad = () => {
-      setLoading(false);
-      try {
-        if (isElectron) {
-          setTitle(frame.getTitle() || "Untitled");
-        } else {
-          setTitle(frame.contentDocument?.title || "Untitled");
-        }
-      } catch {
-        setTitle("Untitled");
-      }
-    };
-
-    const handleStart = () => setLoading(true);
-
-    if (isElectron) {
-      frame.addEventListener("did-navigate", handleLoad);
-      frame.addEventListener("did-navigate-in-page", handleLoad);
-      frame.addEventListener("did-start-loading", handleStart);
-      frame.addEventListener("did-stop-loading", handleLoad);
-      frame.addEventListener("page-title-updated", (e) => setTitle(e.title || "Untitled"));
-    } else {
-      frame.addEventListener("load", handleLoad);
-    }
-
-    return () => {
-      if (isElectron) {
-        frame.removeEventListener("did-navigate", handleLoad);
-        frame.removeEventListener("did-navigate-in-page", handleLoad);
-        frame.removeEventListener("did-start-loading", handleStart);
-        frame.removeEventListener("did-stop-loading", handleLoad);
-      } else {
-        frame.removeEventListener("load", handleLoad);
-      }
-    };
-  }, []);
-
   const goBack = useCallback(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    if (isElectron && frame.canGoBack()) frame.goBack();
-  }, []);
+    const f = getFrame();
+    if (f && isElectron && f.canGoBack && f.canGoBack()) f.goBack();
+  }, [getFrame]);
 
   const goForward = useCallback(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    if (isElectron && frame.canGoForward()) frame.goForward();
-  }, []);
+    const f = getFrame();
+    if (f && isElectron && f.canGoForward && f.canGoForward()) f.goForward();
+  }, [getFrame]);
 
   const reload = useCallback(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    if (isElectron) frame.reload();
-    else frame.src = frame.src;
-  }, []);
+    const f = getFrame();
+    if (f) {
+      if (isElectron && f.reload) f.reload();
+      else if (f.src !== undefined) f.src = f.src;
+    }
+  }, [getFrame]);
+
+  if (!ready) return null;
 
   return (
     <div className="browser">
@@ -166,15 +154,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
         </div>
       </div>
       <div className="browser__content">
-        {isElectron ? (
-          <webview
-            ref={frameRef}
-            src={url}
-            className="browser__webview"
-            partition="persist:browser"
-            allowpopups
-          />
-        ) : (
+        {!isElectron ? (
           <iframe
             ref={frameRef}
             src={url}
@@ -182,6 +162,8 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
             title="Browser"
           />
+        ) : (
+          <div ref={frameRef} className="browser__webview" />
         )}
       </div>
       <div className="browser__status">
