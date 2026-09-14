@@ -2,7 +2,7 @@
   "version": 2,
   "framework": null,
   "installCommand": "echo skip",
-  "buildCommand": "cp app/renderer/index.html . && cp app/renderer/styles.css . && cp app/renderer/bundle.js . && cp app/renderer/browser.js .",
+  "buildCommand": "cp app/renderer/index.html . && cp app/renderer/styles.css . && cp app/renderer/bundle.js . && cp app/renderer/browser.js . && mkdir -p assets && cp app/renderer/assets/logo.png assets/",
   "outputDirectory": ".",
   "headers": [
     {
