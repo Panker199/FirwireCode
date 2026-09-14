@@ -17,7 +17,7 @@ function getLang(filename) {
   return LANGUAGE_MAP[ext] || "plaintext";
 }
 
-export default function CodeEditor({ onClose }) {
+export default function CodeEditor({ onClose, onPreview }) {
   const [files, setFiles] = useState({});
   const [openTabs, setOpenTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
@@ -48,6 +48,38 @@ export default function CodeEditor({ onClose }) {
     if (!activeTab) return;
     setFiles(prev => ({ ...prev, [activeTab]: value }));
     setModified(prev => ({ ...prev, [activeTab]: true }));
+    if (activeTab.endsWith(".html") && onPreview) {
+      const htmlFiles = Object.entries(files).filter(([k]) => k.endsWith(".html") || k.endsWith(".css") || k.endsWith(".js"));
+      const htmlContent = buildPreviewHtml(Object.fromEntries(htmlFiles));
+      onPreview(htmlContent);
+    }
+  }
+
+  function buildPreviewHtml(allFiles) {
+    let html = "";
+    let css = "";
+    let js = "";
+    for (const [name, content] of Object.entries(allFiles)) {
+      if (name.endsWith(".html")) html = content;
+      else if (name.endsWith(".css")) css += content + "\n";
+      else if (name.endsWith(".js")) js += content + "\n";
+    }
+    if (html) {
+      if (css && !html.includes("<link") && !html.includes("<style>")) {
+        html = html.replace("</head>", `<style>${css}</style></head>`);
+      }
+      if (js && !html.includes("<script") && !html.includes("</body>")) {
+        html = html.replace("</body>", `<script>${js}</script></body>`);
+      }
+      return html;
+    }
+    return `<!DOCTYPE html><html><head><style>${css}</style></head><body><script>${js}<\/script></body></html>`;
+  }
+
+  function handlePreview() {
+    if (!activeTab || !onPreview) return;
+    const html = buildPreviewHtml(files);
+    onPreview(html);
   }
 
   function handleSave() {
@@ -116,6 +148,11 @@ export default function CodeEditor({ onClose }) {
               <button className="code-editor__btn code-editor__run" onClick={handleRun} title="Run">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 2l7 4-7 4V2z" fill="currentColor"/></svg>
               </button>
+              {currentLang === "html" && (
+                <button className="code-editor__btn" onClick={handlePreview} title="Preview in Browser">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                </button>
+              )}
             </>
           )}
           <button className="code-editor__btn" onClick={() => setShowTerminal(t => !t)} title="Terminal (Ctrl+`)">

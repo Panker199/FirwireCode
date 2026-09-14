@@ -2,6 +2,7 @@
 import { ThemeProvider } from "./ThemeContext.jsx";
 import Chat from "./components/Chat.jsx";
 import CodeEditor from "./components/CodeEditor.jsx";
+import Browser from "./components/Browser.jsx";
 import Settings from "./components/Settings.jsx";
 import system from "../../core/prompts.js";
 
@@ -27,6 +28,9 @@ function App() {
   const [recentsOpen, setRecentsOpen] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState(null);
+  const [browserUrl, setBrowserUrl] = useState(null);
   const [provider, setProvider] = useState("groq");
   const [model, setModel] = useState("auto");
   const [loaded, setLoaded] = useState(false);
@@ -37,6 +41,7 @@ function App() {
       if (e.ctrlKey && e.key === "b") { e.preventDefault(); setShowSidebar(s => !s); }
       if (e.ctrlKey && e.key === ",") { e.preventDefault(); setShowSettings(true); }
       if (e.ctrlKey && e.key === "e") { e.preventDefault(); setShowEditor(s => !s); }
+      if (e.ctrlKey && e.key === "t") { e.preventDefault(); setShowBrowser(s => !s); }
       if (e.key === "Escape") { setShowSettings(false); setShowSidebar(false); }
     }
     window.addEventListener("keydown", handleKey);
@@ -49,6 +54,17 @@ function App() {
 
   useEffect(() => {
     window.wormgpt?.getProvider()?.then(p => setProvider(p.provider || "groq")).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const savedUrl = localStorage.getItem("wormgpt-browser-url");
+    if (savedUrl) setBrowserUrl(savedUrl);
+  }, []);
+
+  useEffect(() => {
+    fetch("http://localhost:3000", { method: "HEAD", mode: "no-cors", signal: AbortSignal.timeout(2000) })
+      .then(() => setShowBrowser(true))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -82,6 +98,11 @@ function App() {
     setModel(m);
     if (m !== "auto") { if (provider === "gemini") window.wormgpt?.setGeminiModel(m); else window.wormgpt?.setGroqModel(m); }
   }, [provider]);
+
+  const handlePreview = useCallback((html) => {
+    setPreviewHtml(html);
+    setShowBrowser(true);
+  }, []);
 
   const send = useCallback(async (text) => {
     if (sending) return;
@@ -129,21 +150,9 @@ function App() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             <span>Chats</span>
           </div>
-          <div className="sidebar__nav-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <span>Search</span>
-          </div>
-          <div className="sidebar__nav-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <span>Images</span>
-          </div>
-          <div className="sidebar__nav-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-            <span>Videos</span>
-          </div>
-          <div className="sidebar__nav-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-            <span>Library</span>
+          <div className={`sidebar__nav-item ${showBrowser ? "is-active" : ""}`} onClick={() => setShowBrowser(s => !s)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            <span>Browser</span>
           </div>
         </div>
         <div className="sidebar__section">
@@ -193,14 +202,17 @@ function App() {
         </div>
       </aside>
 
-      <div className={`main ${showEditor ? "main--split" : ""}`}>
+      <div className={`main ${showEditor ? "main--split" : ""} ${showBrowser ? "main--browser" : ""}`}>
         <div className="main__bar">
           <div className="main__left">
-            <span className="main__title">{thread?.title || "New Chat"}</span>
+            <span className="main__title">{showBrowser ? "Browser" : (thread?.title || "New Chat")}</span>
           </div>
           <div className="main__right">
             <button className={`main__win ${showEditor ? "is-active" : ""}`} onClick={() => setShowEditor(s => !s)} title="Code Editor (Ctrl+E)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </button>
+            <button className={`main__win ${showBrowser ? "is-active" : ""}`} onClick={() => setShowBrowser(s => !s)} title="Browser (Ctrl+T)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
             </button>
             <button className="main__win" onClick={() => {
               if (!thread) return;
@@ -225,9 +237,14 @@ function App() {
           <div className="main__chat">
             <Chat msgs={msgs} onSend={send} sending={sending} error={error} provider={provider} model={model} onModel={switchModel} />
           </div>
+          {showBrowser && (
+            <div className="main__browser">
+              <Browser onClose={() => setShowBrowser(false)} defaultUrl={browserUrl} previewHtml={previewHtml} />
+            </div>
+          )}
           {showEditor && (
             <div className="main__editor">
-              <CodeEditor onClose={() => setShowEditor(false)} />
+              <CodeEditor onClose={() => setShowEditor(false)} onPreview={handlePreview} />
             </div>
           )}
         </div>

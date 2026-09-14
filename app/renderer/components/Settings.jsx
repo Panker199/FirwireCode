@@ -11,6 +11,7 @@ export default function Settings({ onClose }) {
   const [geminiModel, setGeminiModel] = useState("gemini-3.6-flash");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [browserUrl, setBrowserUrl] = useState("https://www.google.com");
 
   useEffect(() => {
     requestAnimationFrame(() => setOpen(true));
@@ -26,6 +27,8 @@ export default function Settings({ onClose }) {
         setGeminiModel(data.geminiModel || "gemini-3.6-flash");
       }
     } catch {}
+    const saved = localStorage.getItem("wormgpt-browser-url");
+    if (saved) setBrowserUrl(saved);
   }
 
   function close() { setOpen(false); setTimeout(onClose, 250); }
@@ -83,6 +86,28 @@ export default function Settings({ onClose }) {
                   <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          <div className="settings-group">
+            <div className="settings-label">Browser</div>
+            <div className="key-row">
+              <span className="key-label">Default URL</span>
+              <div className="key-input-row">
+                <input
+                  className="key-input"
+                  type="text"
+                  value={browserUrl}
+                  onChange={e => setBrowserUrl(e.target.value)}
+                  placeholder="https://www.google.com"
+                />
+                <button className="key-save" onClick={() => {
+                  localStorage.setItem("wormgpt-browser-url", browserUrl);
+                  setMsg("Browser URL saved");
+                  setTimeout(() => setMsg(""), 2000);
+                }}>Save</button>
+              </div>
+              {msg === "Browser URL saved" && <div className="key-msg">{msg}</div>}
             </div>
           </div>
 

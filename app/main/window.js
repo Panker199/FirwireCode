@@ -13,7 +13,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       enableRemoteModule: false,
-      devTools: !app.isPackaged
+      devTools: !app.isPackaged,
+      webviewTag: true
     }
   });
 
