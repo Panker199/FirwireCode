@@ -58,7 +58,7 @@ function App() {
 
   useEffect(() => {
     const savedUrl = localStorage.getItem("wormgpt-browser-url");
-    if (savedUrl) setBrowserUrl(savedUrl);
+    if (savedUrl && savedUrl !== "https://www.google.com") setBrowserUrl(savedUrl);
   }, []);
 
   useEffect(() => {

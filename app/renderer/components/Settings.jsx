@@ -11,7 +11,7 @@ export default function Settings({ onClose }) {
   const [geminiModel, setGeminiModel] = useState("gemini-3.6-flash");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  const [browserUrl, setBrowserUrl] = useState("https://www.google.com");
+  const [browserUrl, setBrowserUrl] = useState("about:blank");
 
   useEffect(() => {
     requestAnimationFrame(() => setOpen(true));
