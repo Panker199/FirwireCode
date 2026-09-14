@@ -7,14 +7,14 @@ function formatUrl(input) {
   if (!trimmed) return "";
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   if (/^[\w-]+(\.[\w-]+)+/.test(trimmed)) return "https://" + trimmed;
-  return "https://www.google.com/search?q=" + encodeURIComponent(trimmed);
+  return "https://duckduckgo.com/?q=" + encodeURIComponent(trimmed);
 }
 
 export default function Browser({ onClose, defaultUrl, previewHtml }) {
   const frameRef = useRef(null);
   const inputRef = useRef(null);
-  const [url, setUrl] = useState(defaultUrl || "https://www.google.com");
-  const [displayUrl, setDisplayUrl] = useState(defaultUrl || "https://www.google.com");
+  const [url, setUrl] = useState(defaultUrl || "about:blank");
+  const [displayUrl, setDisplayUrl] = useState(defaultUrl || "about:blank");
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("New Tab");
   const [isPreview, setIsPreview] = useState(false);
@@ -140,7 +140,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
             value={displayUrl}
             onChange={(e) => setDisplayUrl(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isPreview ? "Live Preview" : "Search or enter URL"}
+            placeholder={isPreview ? "Live Preview" : "Enter URL or search..."}
             spellCheck={false}
             readOnly={isPreview}
           />
@@ -159,8 +159,9 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
             ref={frameRef}
             src={url}
             className="browser__webview"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
             title="Browser"
+            onError={() => setLoading(false)}
           />
         ) : (
           <div ref={frameRef} className="browser__webview" />
