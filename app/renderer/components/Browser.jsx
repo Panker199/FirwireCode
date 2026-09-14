@@ -19,6 +19,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
   const [title, setTitle] = useState("New Tab");
   const [isPreview, setIsPreview] = useState(false);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (isElectron && frameRef.current && !frameRef.current.tagName) {
@@ -96,10 +97,15 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
   const reload = useCallback(() => {
     const f = getFrame();
     if (f) {
+      setError("");
       if (isElectron && f.reload) f.reload();
       else if (f.src !== undefined) f.src = f.src;
     }
   }, [getFrame]);
+
+  const openExternal = useCallback(() => {
+    if (url && url !== "about:blank") window.open(url, "_blank");
+  }, [url]);
 
   if (!ready) return null;
 
@@ -154,14 +160,24 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
         </div>
       </div>
       <div className="browser__content">
-        {!isElectron ? (
+        {error && !isElectron ? (
+          <div className="browser__error">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{opacity: 0.4}}>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p className="browser__error-text">{error}</p>
+            <button className="browser__error-btn" onClick={openExternal}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open in new tab
+            </button>
+          </div>
+        ) : !isElectron ? (
           <iframe
             ref={frameRef}
             src={url}
             className="browser__webview"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
             title="Browser"
-            onError={() => setLoading(false)}
+            onError={() => { setLoading(false); setError("This site cannot be loaded in iframe"); }}
           />
         ) : (
           <div ref={frameRef} className="browser__webview" />
