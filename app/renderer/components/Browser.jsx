@@ -19,10 +19,9 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
   const [title, setTitle] = useState("New Tab");
   const [isPreview, setIsPreview] = useState(false);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isElectron && frameRef.current && !frameRef.current.tagName) {
+    if (isElectron && frameRef.current && !frameRef.current._webviewReady) {
       const wv = document.createElement("webview");
       wv.setAttribute("src", url);
       wv.setAttribute("class", "browser__webview");
@@ -30,6 +29,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
       wv.setAttribute("allowpopups", "");
       frameRef.current.appendChild(wv);
       frameRef.current._webview = wv;
+      frameRef.current._webviewReady = true;
 
       const handleLoad = () => { setLoading(false); try { setTitle(wv.getTitle() || "Untitled"); } catch {} };
       const handleStart = () => setLoading(true);
@@ -51,17 +51,21 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
 
   const navigate = useCallback((target) => {
     const formatted = formatUrl(target);
-    if (formatted) {
-      setUrl(formatted);
-      setDisplayUrl(formatted);
-      setIsPreview(false);
-      setLoading(true);
-      const f = getFrame();
-      if (f) {
-        if (isElectron && f.loadURL) f.loadURL(formatted);
-        else if (f.src !== undefined) f.src = formatted;
-      }
+    if (!formatted) return;
+    setUrl(formatted);
+    setDisplayUrl(formatted);
+    setIsPreview(false);
+    setErrorMsg("");
+
+    if (!isElectron) {
+      window.open(formatted, "_blank");
+      setLoading(false);
+      return;
     }
+
+    setLoading(true);
+    const f = getFrame();
+    if (f && f.loadURL) f.loadURL(formatted);
   }, [getFrame]);
 
   const loadPreview = useCallback((html) => {
@@ -97,15 +101,10 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
   const reload = useCallback(() => {
     const f = getFrame();
     if (f) {
-      setError("");
       if (isElectron && f.reload) f.reload();
       else if (f.src !== undefined) f.src = f.src;
     }
   }, [getFrame]);
-
-  const openExternal = useCallback(() => {
-    if (url && url !== "about:blank") window.open(url, "_blank");
-  }, [url]);
 
   if (!ready) return null;
 
@@ -146,7 +145,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
             value={displayUrl}
             onChange={(e) => setDisplayUrl(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isPreview ? "Live Preview" : "Enter URL or search..."}
+            placeholder={isPreview ? "Live Preview" : "Enter URL and press Enter to open"}
             spellCheck={false}
             readOnly={isPreview}
           />
@@ -154,31 +153,31 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
         </div>
         <div className="browser__nav">
           {isPreview && <span className="browser__preview-badge">LIVE</span>}
+          {!isElectron && (
+            <button className="browser__btn" onClick={() => { if (url && url !== "about:blank") window.open(url, "_blank"); }} title="Open in new tab">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </button>
+          )}
           <button className="browser__btn browser__btn--close" onClick={onClose} title="Close Browser">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       </div>
       <div className="browser__content">
-        {error && !isElectron ? (
-          <div className="browser__error">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{opacity: 0.4}}>
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        {!isElectron ? (
+          <div className="browser__web-mode">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{opacity: 0.3}}>
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
             </svg>
-            <p className="browser__error-text">{error}</p>
-            <button className="browser__error-btn" onClick={openExternal}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Open in new tab
-            </button>
+            <p className="browser__web-mode-title">Web Browser</p>
+            <p className="browser__web-mode-text">Enter a URL above and press Enter to open in a new tab</p>
+            <div className="browser__web-mode-links">
+              <button onClick={() => window.open("https://www.google.com", "_blank")}>Google</button>
+              <button onClick={() => window.open("https://github.com", "_blank")}>GitHub</button>
+              <button onClick={() => window.open("https://www.youtube.com", "_blank")}>YouTube</button>
+              <button onClick={() => window.open("https://twitter.com", "_blank")}>Twitter</button>
+            </div>
           </div>
-        ) : !isElectron ? (
-          <iframe
-            ref={frameRef}
-            src={url}
-            className="browser__webview"
-            title="Browser"
-            onError={() => { setLoading(false); setError("This site cannot be loaded in iframe"); }}
-          />
         ) : (
           <div ref={frameRef} className="browser__webview" />
         )}
