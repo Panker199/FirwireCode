@@ -79,5 +79,19 @@ contextBridge.exposeInMainWorld("wormgpt", {
   // Window
   minimize: () => ipcRenderer.send("win:min"),
   maximize: () => ipcRenderer.send("win:max"),
-  close: () => ipcRenderer.send("win:close")
+  close: () => ipcRenderer.send("win:close"),
+
+  // BrowserView
+  browserCreate: (opts) => ipcRenderer.invoke("browser:create", opts),
+  browserSetBounds: (bounds) => ipcRenderer.invoke("browser:setBounds", bounds),
+  browserNavigate: (url) => ipcRenderer.invoke("browser:navigate", url),
+  browserGoBack: () => ipcRenderer.invoke("browser:goBack"),
+  browserGoForward: () => ipcRenderer.invoke("browser:goForward"),
+  browserReload: () => ipcRenderer.invoke("browser:reload"),
+  browserGetURL: () => ipcRenderer.invoke("browser:getURL"),
+  browserGetTitle: () => ipcRenderer.invoke("browser:getTitle"),
+  browserDestroy: () => ipcRenderer.invoke("browser:destroy"),
+  browserCanGoBack: () => ipcRenderer.invoke("browser:canGoBack"),
+  browserCanGoForward: () => ipcRenderer.invoke("browser:canGoForward"),
+  browserUpdateBounds: (bounds) => ipcRenderer.send("browser:updateBounds", bounds)
 });

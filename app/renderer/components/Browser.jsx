@@ -11,73 +11,91 @@ function formatUrl(input) {
 }
 
 export default function Browser({ onClose, defaultUrl, previewHtml }) {
-  const frameRef = useRef(null);
+  const containerRef = useRef(null);
   const inputRef = useRef(null);
   const [url, setUrl] = useState(defaultUrl || "about:blank");
   const [displayUrl, setDisplayUrl] = useState(defaultUrl || "about:blank");
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("New Tab");
   const [isPreview, setIsPreview] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
 
   useEffect(() => {
-    if (isElectron && frameRef.current && !frameRef.current._webviewReady) {
-      const wv = document.createElement("webview");
-      wv.setAttribute("src", url);
-      wv.setAttribute("class", "browser__webview");
-      wv.setAttribute("partition", "persist:browser");
-      wv.setAttribute("allowpopups", "");
-      frameRef.current.appendChild(wv);
-      frameRef.current._webview = wv;
-      frameRef.current._webviewReady = true;
-
-      const handleLoad = () => { setLoading(false); try { setTitle(wv.getTitle() || "Untitled"); } catch {} };
-      const handleStart = () => setLoading(true);
-      const handleTitle = (e) => setTitle(e.title || "Untitled");
-
-      wv.addEventListener("did-navigate", handleLoad);
-      wv.addEventListener("did-navigate-in-page", handleLoad);
-      wv.addEventListener("did-start-loading", handleStart);
-      wv.addEventListener("did-stop-loading", handleLoad);
-      wv.addEventListener("page-title-updated", handleTitle);
+    if (isElectron && containerRef.current && window.wormgpt?.browserCreate) {
+      const rect = containerRef.current.getBoundingClientRect();
+      window.wormgpt.browserCreate({
+        url: url,
+        bounds: { x: 0, y: 0, width: rect.width, height: rect.height }
+      });
     }
-    setReady(true);
+
+    return () => {
+      if (isElectron && window.wormgpt?.browserDestroy) {
+        window.wormgpt.browserDestroy();
+      }
+    };
   }, []);
 
-  const getFrame = useCallback(() => {
-    if (!frameRef.current) return null;
-    return frameRef.current._webview || frameRef.current;
+  useEffect(() => {
+    if (!isElectron || !containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (window.wormgpt?.browserUpdateBounds) {
+          window.wormgpt.browserUpdateBounds({ x: 0, y: 0, width, height });
+        }
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
   }, []);
 
-  const navigate = useCallback((target) => {
+  const updateNavState = useCallback(async () => {
+    if (!isElectron || !window.wormgpt) return;
+    try {
+      const [urlRes, titleRes, backRes, fwdRes] = await Promise.all([
+        window.wormgpt.browserGetURL(),
+        window.wormgpt.browserGetTitle(),
+        window.wormgpt.browserCanGoBack(),
+        window.wormgpt.browserCanGoForward()
+      ]);
+      if (urlRes.ok) setDisplayUrl(urlRes.url);
+      if (titleRes.ok) setTitle(titleRes.title || "Untitled");
+      setCanGoBack(backRes);
+      setCanGoForward(fwdRes);
+    } catch {}
+  }, []);
+
+  const navigate = useCallback(async (target) => {
     const formatted = formatUrl(target);
     if (!formatted) return;
     setUrl(formatted);
     setDisplayUrl(formatted);
     setIsPreview(false);
-    setErrorMsg("");
+    setLoading(true);
 
-    if (!isElectron) {
+    if (isElectron && window.wormgpt?.browserNavigate) {
+      await window.wormgpt.browserNavigate(formatted);
+      setTimeout(updateNavState, 500);
+      setLoading(false);
+    } else {
       window.open(formatted, "_blank");
       setLoading(false);
-      return;
     }
+  }, [updateNavState]);
 
-    setLoading(true);
-    const f = getFrame();
-    if (f && f.loadURL) f.loadURL(formatted);
-  }, [getFrame]);
-
-  const loadPreview = useCallback((html) => {
+  const loadPreview = useCallback(async (html) => {
     setIsPreview(true);
     setTitle("Live Preview");
     setDisplayUrl("preview://localhost");
-    const f = getFrame();
-    if (f) {
-      if (isElectron && f.loadURL) f.loadURL(`data:text/html,${encodeURIComponent(html)}`);
-      else if (f.srcdoc !== undefined) f.srcdoc = html;
+
+    if (isElectron && window.wormgpt?.browserNavigate) {
+      await window.wormgpt.browserNavigate(`data:text/html,${encodeURIComponent(html)}`);
     }
-  }, [getFrame]);
+  }, []);
 
   useEffect(() => {
     if (previewHtml) loadPreview(previewHtml);
@@ -88,34 +106,36 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
     if (e.key === "Escape") { e.target.blur(); }
   }, [displayUrl, navigate]);
 
-  const goBack = useCallback(() => {
-    const f = getFrame();
-    if (f && isElectron && f.canGoBack && f.canGoBack()) f.goBack();
-  }, [getFrame]);
-
-  const goForward = useCallback(() => {
-    const f = getFrame();
-    if (f && isElectron && f.canGoForward && f.canGoForward()) f.goForward();
-  }, [getFrame]);
-
-  const reload = useCallback(() => {
-    const f = getFrame();
-    if (f) {
-      if (isElectron && f.reload) f.reload();
-      else if (f.src !== undefined) f.src = f.src;
+  const goBack = useCallback(async () => {
+    if (isElectron && window.wormgpt?.browserGoBack) {
+      await window.wormgpt.browserGoBack();
+      setTimeout(updateNavState, 300);
     }
-  }, [getFrame]);
+  }, [updateNavState]);
 
-  if (!ready) return null;
+  const goForward = useCallback(async () => {
+    if (isElectron && window.wormgpt?.browserGoForward) {
+      await window.wormgpt.browserGoForward();
+      setTimeout(updateNavState, 300);
+    }
+  }, [updateNavState]);
+
+  const reload = useCallback(async () => {
+    if (isElectron && window.wormgpt?.browserReload) {
+      setLoading(true);
+      await window.wormgpt.browserReload();
+      setTimeout(() => { setLoading(false); updateNavState(); }, 500);
+    }
+  }, [updateNavState]);
 
   return (
     <div className="browser">
       <div className="browser__toolbar">
         <div className="browser__nav">
-          <button className="browser__btn" onClick={goBack} title="Back">
+          <button className="browser__btn" onClick={goBack} disabled={!canGoBack} title="Back">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <button className="browser__btn" onClick={goForward} title="Forward">
+          <button className="browser__btn" onClick={goForward} disabled={!canGoForward} title="Forward">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
           <button className="browser__btn" onClick={reload} title="Refresh">
@@ -145,7 +165,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
             value={displayUrl}
             onChange={(e) => setDisplayUrl(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isPreview ? "Live Preview" : "Enter URL and press Enter to open"}
+            placeholder={isPreview ? "Live Preview" : "Enter URL and press Enter"}
             spellCheck={false}
             readOnly={isPreview}
           />
@@ -179,7 +199,7 @@ export default function Browser({ onClose, defaultUrl, previewHtml }) {
             </div>
           </div>
         ) : (
-          <div ref={frameRef} className="browser__webview" />
+          <div ref={containerRef} className="browser__webview-container" />
         )}
       </div>
       <div className="browser__status">
